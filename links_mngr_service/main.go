@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -10,11 +9,10 @@ import (
 
 func createRouter(storageWriter *StorageWriter) (r *mux.Router) {
 	r = mux.NewRouter()
-	r.Handle("/create_link", CreateLinkHandler { storageWriter }).Methods(http.MethodPost)
-	r.Handle("/delete_link", DeleteLinkHandler { storageWriter }).Methods(http.MethodDelete)
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World!")
-	}).Methods("GET")
+	s := r.PathPrefix("/api/manage_links").Subrouter()
+	s.Handle("/create_link", CreateLinkHandler { storageWriter }).Methods(http.MethodPost)
+	s.Handle("/delete_link", DeleteLinkHandler { storageWriter }).Methods(http.MethodDelete)
+	s.Handle("/links_info", LinksInfoHandler { storageWriter }).Methods(http.MethodGet)
 	return
 }
 
@@ -22,8 +20,8 @@ func main() {
 	log.Print("Starting service...")
 
 	log.Print("Creating storage writer...")
-	// TODO: move to other servide...
-	storageWriter := newStorageWriter("http://localhost:8080")
+	// TODO: move to other service...
+	storageWriter := newStorageWriter("http://localhost:8087")
 
 	log.Print("Creating router with handlers...")
 	r := createRouter(storageWriter)

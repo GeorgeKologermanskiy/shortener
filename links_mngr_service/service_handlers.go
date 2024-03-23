@@ -11,14 +11,6 @@ type CreateLinkHandler struct {
 	storageWriter *StorageWriter
 }
 
-type ShortLinkInfo struct {
-	Link_id string `json:"link_id"`
-	Short_link string `json:"short_link"`
-	Full_link string `json:"full_link"`
-	Created_time time.Time `json:"created_time"`
-	Expired_time time.Time `json:"expired_time"`
-}
-
 func (handler CreateLinkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var link string
 	if linkList := r.URL.Query()["link"]; len(linkList) == 1 {
@@ -30,16 +22,15 @@ func (handler CreateLinkHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	// TODO: check link before storing...
-	link_id, short_link := handler.storageWriter.addLink(link)
-
-	if err := json.NewEncoder(w).Encode(&ShortLinkInfo {
-		Link_id: link_id,
-		Short_link: short_link,
+	linkInfo := ShortLinkInfo {
 		Full_link: link,
 		Created_time: time.Now(),
 		Expired_time: time.Now(),
-	}); err != nil {
-		log.Fatal("Error while parsing return struct ", err)
+	}
+	handler.storageWriter.storeLink(&linkInfo)
+
+	if err := json.NewEncoder(w).Encode(&linkInfo); err != nil {
+		log.Fatal("Error while parsing creating info return struct ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -67,5 +58,21 @@ func (handler DeleteLinkHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+type LinksInfoHandler struct {
+	storageWriter *StorageWriter
+}
+
+func (handler LinksInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	links := handler.storageWriter.linksInfo()
+
+	if err := json.NewEncoder(w).Encode(links); err != nil {
+		log.Fatal("Error while encoding links info ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		log.Print("Generated LinksInfo")
+		w.Header().Set("Content-Type", "application/json")
 	}
 }
